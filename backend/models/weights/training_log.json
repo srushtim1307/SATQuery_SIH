@@ -1,0 +1,69 @@
+{
+  "model_architecture": "MobileNetV3-Small",
+  "task": "BigEarthNet-19 Multi-Spectral Land Cover Classification",
+  "taxonomy": [
+    "Urban fabric",
+    "Industrial or commercial units",
+    "Arable land",
+    "Permanent crops",
+    "Pastures",
+    "Complex cultivation patterns",
+    "Land principally occupied by agriculture, with significant areas of natural vegetation",
+    "Agro-forestry areas",
+    "Broad-leaved forest",
+    "Coniferous forest",
+    "Mixed forest",
+    "Natural grassland and sparsely vegetated areas",
+    "Moors, heathland and sclerophyllous vegetation",
+    "Transitional woodland, shrub",
+    "Beaches, dunes, sands",
+    "Inland wetlands",
+    "Coastal wetlands",
+    "Inland waters",
+    "Marine waters"
+  ],
+  "epochs": 5,
+  "final_train_loss": 0.1604,
+  "final_val_loss": 0.3876,
+  "final_val_accuracy": 0.9289,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.3749,
+      "val_loss": 0.5736,
+      "val_pixel_accuracy": 0.9289,
+      "elapsed_seconds": 6.0
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.2104,
+      "val_loss": 0.5243,
+      "val_pixel_accuracy": 0.9289,
+      "elapsed_seconds": 10.66
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.1858,
+      "val_loss": 0.4757,
+      "val_pixel_accuracy": 0.9289,
+      "elapsed_seconds": 14.99
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.1642,
+      "val_loss": 0.4306,
+      "val_pixel_accuracy": 0.9289,
+      "elapsed_seconds": 19.56
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.1604,
+      "val_loss": 0.3876,
+      "val_pixel_accuracy": 0.9289,
+      "elapsed_seconds": 24.04
+    }
+  ],
+  "trained_at": "2026-09-07T19:45:17Z",
+  "status": "completed",
+  "backend": "adapted"
+}

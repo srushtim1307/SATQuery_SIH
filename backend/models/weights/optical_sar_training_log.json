@@ -1,0 +1,40 @@
+{
+  "model": "CrossModalOpticalSARNet",
+  "device": "cpu",
+  "parameters": 317542,
+  "epochs": 5,
+  "history": [
+    {
+      "epoch": 1,
+      "total_loss": 0.0882,
+      "reconstruction_loss": 0.0809,
+      "coherence_score": 0.0112
+    },
+    {
+      "epoch": 2,
+      "total_loss": 0.0218,
+      "reconstruction_loss": 0.028,
+      "coherence_score": 0.0729
+    },
+    {
+      "epoch": 3,
+      "total_loss": -0.016,
+      "reconstruction_loss": 0.0265,
+      "coherence_score": 0.435
+    },
+    {
+      "epoch": 4,
+      "total_loss": -0.0641,
+      "reconstruction_loss": 0.0262,
+      "coherence_score": 0.9132
+    },
+    {
+      "epoch": 5,
+      "total_loss": -0.073,
+      "reconstruction_loss": 0.0244,
+      "coherence_score": 0.983
+    }
+  ],
+  "elapsed_seconds": 89.27,
+  "final_loss": -0.073
+}

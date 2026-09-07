@@ -1,0 +1,960 @@
+SATQUERY AI — IMPLEMENTATION SPECIFICATION Smart India Hackathon 2026
+Problem Statement: SIH26167 Organization: ISRO Theme: Space Technology
+
+VERSION 1.0 — Master implementation brief for Antigravity
+
+============================================================ 0. PURPOSE
+OF THIS FILE
+============================================================
+
+This file is the single source of truth for building the SatQuery AI
+working prototype.
+
+IMPORTANT: - Read this entire file before writing code. - Do not
+redesign the product into a generic dashboard. - Do not add unnecessary
+features. - Do not invent unsupported capabilities and present them as
+completed. - Build the application as a real working prototype, not only
+a static UI. - The UI screenshots supplied separately are the visual
+reference. - The SIH problem statement is the functional reference. -
+Where a full research model is too heavy for local development, use a
+clean model-adapter architecture and a clearly labeled demo/fallback
+implementation so the real model can be plugged in later. - Mandatory
+SIH capabilities must remain represented in the architecture even if a
+specific model is initially a placeholder.
+
+============================================================ 1. PRODUCT
+DEFINITION ============================================================
+
+Product name: SatQuery AI
+
+Positioning: An interactive vision-language assistant for multimodal
+remote-sensing image analysis through natural-language text queries.
+
+Simple product explanation: “Upload satellite image(s), ask a question
+in natural language, and let SatQuery AI choose the appropriate
+remote-sensing specialist model and return an answer with visual
+evidence.”
+
+Core product principle: UPLOAD -> ASK -> UNDERSTAND -> SELECT -> ANALYZE
+-> EXPLAIN -> EVIDENCE
+
+The system should feel like ChatGPT specialized for satellite imagery,
+not like a satellite operations control room.
+
+The central innovation is agentic orchestration: the user should not
+have to know which specialist AI model to select. The agent interprets
+the query and available imagery, validates the input, selects the
+appropriate specialist tool/model, executes it, aggregates the result,
+and presents an evidence-grounded answer.
+
+============================================================ 2. SIH
+FUNCTIONAL REQUIREMENTS
+============================================================
+
+The implementation must support the following input types:
+
+A. Single image - Optical / multispectral - SAR - Supported analysis
+includes: - Single-image VQA - Captioning / scene description OR
+text-guided region grounding
+
+B. Cross-modal pair - Co-registered optical/multispectral + SAR - Joint
+analysis is mandatory.
+
+C. Bi-temporal pair - Spatially corresponding images from different
+times - Change detection / change description / change-based VQA is
+mandatory. - A change map is useful but optional when reference masks
+are not available.
+
+Input formats: - GeoTIFF / TIFF - PNG / JPEG for prescribed benchmark
+datasets where applicable
+
+Mandatory AI requirement: - At least one vision or vision-language
+component must be fine-tuned or adapted using BigEarthNet.txt or another
+open-source training source.
+
+Evaluation/reference datasets named in the PS: - BigEarthNet.txt -
+VRSBench - RSVQA - CDVQA - ISRO/SAC evaluation dataset
+
+The ISRO/SAC evaluation data may contain pre-georeferenced/co-registered
+Cartosat-2S optical and RISAT SAR pairs with hidden reference answers,
+labels, bounding boxes or masks as applicable. Do not hard-code or
+expose hidden evaluation answers.
+
+============================================================ 3. REQUIRED
+SPECIALIST CAPABILITIES
+============================================================
+
+The backend must expose a model/tool registry with specialist adapters.
+
+Minimum logical specialists:
+
+1.  VQA Purpose: Answer natural-language questions about a
+    remote-sensing image.
+
+Input: - image - natural-language query
+
+Output: - answer - confidence - evidence if available
+
+2.  CAPTIONING / SCENE DESCRIPTION Purpose: Describe the image/scene.
+
+Input: - image
+
+Output: - textual description - confidence/evidence where available
+
+3.  GROUNDING Purpose: Locate a target/region referred to by a text
+    query.
+
+Example: “Where are the water bodies?”
+
+Output: - answer - bounding boxes / masks / highlighted regions -
+confidence
+
+4.  CHANGE ANALYSIS Purpose: Compare two spatially corresponding images
+    from different dates.
+
+Example: “What changed between these two images?”
+
+Output: - change description - changed regions if available -
+confidence - optional change map
+
+5.  OPTICAL-SAR JOINT ANALYSIS Purpose: Combine complementary optical
+    and SAR information.
+
+Example: “Use the optical and SAR images together to identify built-up
+and water-covered regions.”
+
+Output: - answer - relevant evidence - confidence - explanation of joint
+analysis
+
+IMPORTANT: The agent itself is NOT the specialist vision model. The
+agent is the orchestrator/router.
+
+============================================================ 4. AGENTIC
+ORCHESTRATION
+============================================================
+
+Implement a deterministic, inspectable orchestration layer first. Do not
+make the whole system depend on opaque free-form LLM behavior.
+
+The agent must:
+
+1.  Receive:
+
+    -   user query
+    -   uploaded image metadata
+    -   number of images
+    -   image modalities
+    -   image compatibility information
+
+2.  Interpret the query.
+
+3.  Determine the likely task:
+
+    -   VQA
+    -   captioning
+    -   grounding
+    -   change analysis
+    -   optical-SAR analysis
+
+4.  Validate the required input configuration.
+
+Examples: - One image + “describe…” -> captioning - One image + “are
+there…” -> VQA - One image + “where is…” -> grounding - Two dates ->
+change analysis - Optical + SAR pair -> optical-SAR analysis
+
+5.  Query the model registry for compatible specialists.
+
+6.  Select the appropriate specialist.
+
+7.  Execute the specialist.
+
+8.  Aggregate outputs.
+
+9.  Produce:
+
+    -   textual answer
+    -   visual evidence where available
+    -   confidence
+    -   observable execution summary
+
+The execution summary is part of the product and must be visible through
+an expandable UI section.
+
+Example:
+
+Query understood Input validated Task detected: Change Detection
+Specialist selected: Remote-Sensing Change Model Analysis completed
+Visual evidence prepared
+
+Do NOT display private chain-of-thought or hidden reasoning. Only show
+concise observable execution steps.
+
+============================================================ 5. MODEL
+REGISTRY DESIGN
+============================================================
+
+Create a model registry abstraction.
+
+Each registered specialist should have fields similar to:
+
+-   id
+-   display_name
+-   task_type
+-   supported_modalities
+-   supported_input_count
+-   supported_formats
+-   requires_georeferencing
+-   requires_coregistration
+-   status
+-   adapter_name
+-   model_path/configuration
+-   confidence_supported
+-   evidence_supported
+
+Example logical entries:
+
+remote_sensing_vqa remote_sensing_captioning remote_sensing_grounding
+remote_sensing_change optical_sar_fusion
+
+Do not hard-code model selection directly inside UI components.
+
+The agent should call the registry.
+
+This makes it possible to add a new model later without changing the
+entire application.
+
+============================================================ 6. MODEL
+ADAPTER ARCHITECTURE
+============================================================
+
+Use an adapter interface so every specialist follows the same contract.
+
+Logical interface:
+
+analyze(input_bundle, query, parameters) -> AnalysisResult
+
+AnalysisResult should contain:
+
+-   task
+-   answer
+-   confidence
+-   evidence
+-   model_id
+-   parameters
+-   warnings
+-   processing_time
+-   execution_status
+
+Evidence should support types such as:
+
+-   bounding_box
+-   polygon/mask
+-   change_map
+-   image_overlay
+-   textual_evidence
+
+The exact model implementation can change without changing the frontend.
+
+============================================================ 7.
+REMOTE-SENSING IMAGE INGESTION
+============================================================
+
+Create an image ingestion service.
+
+Responsibilities:
+
+-   accept uploads
+-   validate file extension
+-   inspect image metadata
+-   determine likely modality when possible
+-   read GeoTIFF/TIFF metadata
+-   check image dimensions
+-   generate preview
+-   create an internal image record
+-   associate images with a session
+
+Input validation must happen BEFORE model execution.
+
+For unsupported input: show a friendly message such as:
+
+“This image format or configuration is not supported for the selected
+analysis. Please upload a supported GeoTIFF/TIFF or benchmark image.”
+
+Do not silently send incompatible imagery to a model.
+
+For image pairs: validate whether the pair is appropriate for the
+requested operation.
+
+For optical + SAR: verify that both expected modalities are present.
+
+For bi-temporal: verify that two time-separated images are present and
+spatially corresponding when metadata is available.
+
+Do not claim perfect automatic modality detection if the available
+metadata does not support it. Allow a safe manual
+correction/confirmation when needed.
+
+============================================================ 8. GEO-TIFF
+/ TIFF HANDLING
+============================================================
+
+The prototype should be able to accept GeoTIFF/TIFF files.
+
+Use a dedicated image-processing layer.
+
+Recommended Python ecosystem: - rasterio - Pillow where appropriate -
+numpy - OpenCV where needed
+
+Do not send huge raw rasters directly into every model.
+
+Create a preprocessing pipeline capable of: - reading raster data - band
+selection - normalization - thumbnail generation - tiling/cropping when
+required - conversion to model-ready tensors/images
+
+Preserve original files separately from generated previews.
+
+============================================================ 9. BACKEND
+============================================================
+
+Recommended backend: Python + FastAPI
+
+Responsibilities: - upload APIs - session APIs - query APIs - agent
+orchestration - model registry - inference - result aggregation -
+history persistence - report generation - health/status endpoint
+
+Suggested backend structure:
+
+backend/ app/ main.py api/ routes_upload.py routes_analysis.py
+routes_history.py routes_health.py agent/ orchestrator.py
+task_classifier.py planner.py validator.py registry.py models/ base.py
+vqa.py captioning.py grounding.py change.py optical_sar.py services/
+ingestion.py preprocessing.py evidence.py aggregation.py reporting.py
+schemas/ requests.py responses.py db/ database.py models.py core/
+config.py logging.py
+
+Keep modules separated and testable.
+
+============================================================ 10.
+FRONTEND ============================================================
+
+Recommended: React + TypeScript
+
+The supplied UI reference must be treated as the visual direction.
+
+Use: - Poppins - Beige #F2EFE7 - Navy #0D1B2A - Teal #4E6B7C - Sky Blue
+#C8D9E6 - White #FFFFFF
+
+Visual principles: - minimal - spacious - clean - professional -
+desktop-first - AI assistant feel - satellite imagery focus
+
+DO NOT build: - mission-control dashboard - telemetry panels - CPU/GPU
+monitoring - orbit widget - dense statistics dashboard - excessive
+technical cards - fake live satellite data - unnecessary charts - giant
+control panels
+
+The UI should immediately communicate: “Upload an image and ask a
+question.”
+
+============================================================ 11.
+FRONTEND PAGE / SCREEN STRUCTURE
+============================================================
+
+Only these primary screens are needed.
+
+A. MAIN CHAT WORKSPACE The most important screen.
+
+Layout: - simple left sidebar - top bar - central chat area - image
+upload - user question - assistant response - visual evidence -
+confidence - expandable analysis process
+
+Sidebar: SatQuery AI + New Analysis
+
+Recent analyses: - Urban Expansion - Water Body Detection - Flood
+Assessment
+
+Settings
+
+Do not overload sidebar navigation.
+
+Top bar: SatQuery AI “Vision-Language Assistant for Satellite Imagery”
+
+Model/analysis selector: Auto Detect (Recommended)
+
+Optional manual modes: - VQA - Grounding - Change Detection - Optical +
+SAR
+
+Auto Detect must be the default.
+
+B. NEW ANALYSIS / UPLOAD SCREEN
+
+Three choices: - Single Image - Optical + SAR - Before + After
+
+Supported formats: GeoTIFF, TIFF, PNG, JPEG
+
+Show staged uploads with: - thumbnail - filename - modality -
+readiness - remove action
+
+Continue to Analysis.
+
+C. AGENT PROCESSING STATE
+
+Show: - Understanding your question - Checking image compatibility -
+Identifying analysis task - Selecting specialist model - Analyzing
+imagery - Preparing visual evidence
+
+Also show: Detected Task Input Selected Model
+
+Do not show private reasoning.
+
+D. ANALYSIS HISTORY
+
+Simple conversation-history style list.
+
+Each entry: - thumbnail - title - question - analysis type - number of
+images - date - reopen action
+
+Filters: All VQA Grounding Change Detection Optical + SAR
+
+E. SETTINGS
+
+Keep minimal: - Default analysis mode - Evidence display - Confidence
+display - About - API/backend status if useful
+
+============================================================ 12. MAIN
+CHAT RESULT DESIGN
+============================================================
+
+Example user message:
+
+“Where are the water bodies in this image?”
+
+Assistant response:
+
+“Two major water bodies are visible in the image. The larger water body
+is located in the upper-right region, while a smaller water body appears
+near the lower-left area.”
+
+Then: VISUAL EVIDENCE
+
+Show the satellite image with bounding boxes or highlighted regions.
+
+Then: Confidence: 92% Analysis Mode: VQA + Grounding Format/Source: show
+only useful information
+
+Expandable: “How this was analyzed”
+
+Contents: Task: Visual Grounding Model: Remote-Sensing Grounding Model
+Evidence: Detected water regions
+
+The technical trace is observable but concise.
+
+============================================================ 13. CHANGE
+DETECTION RESULT
+============================================================
+
+When two images are provided:
+
+Show: BEFORE | AFTER
+
+Then: CHANGE ANALYSIS
+
+Example result: “Built-up area increased in the eastern sector.”
+
+Then: Visual Change Evidence
+
+If the model can generate a change map: display it.
+
+If not: display appropriate visual comparison/evidence.
+
+Show: Confidence Analysis Mode Model
+
+Do not invent numeric change percentages unless calculated by the actual
+analysis pipeline.
+
+============================================================ 14.
+OPTICAL + SAR RESULT
+============================================================
+
+When optical + SAR are supplied:
+
+Show: OPTICAL | SAR
+
+Then: OPTICAL + SAR ANALYSIS
+
+The result should explicitly communicate that both modalities were used.
+
+Example: “Using both optical and SAR imagery, the system identifies
+built-up regions and water-covered areas.”
+
+Then visual evidence.
+
+Do not claim a fusion result if only one modality was actually
+processed. The backend result must record which inputs were used.
+
+============================================================ 15. DEMO /
+FALLBACK MODE
+============================================================
+
+A working hackathon prototype may need a fallback when heavyweight
+research models cannot run locally.
+
+Implement a clear model adapter architecture with two possible modes:
+
+REAL MODE: Runs the configured open-source/locally available model.
+
+DEMO MODE: Uses deterministic sample outputs tied to supplied demo
+images so the full UI/agent workflow can be demonstrated.
+
+IMPORTANT: Demo Mode must be visibly marked in the development interface
+and must not be represented as real model inference.
+
+Never fabricate evaluation metrics.
+
+Never fabricate model accuracy.
+
+Never claim that a model was fine-tuned if it was not.
+
+============================================================ 16.
+DATABASE / HISTORY
+============================================================
+
+Use SQLite for easiest local prototype development, with a clean path to
+PostgreSQL later.
+
+Entities:
+
+AnalysisSession - id - title - created_at - updated_at - mode - status
+
+ImageAsset - id - session_id - filename - path - modality - format -
+dimensions - acquisition_date if available - metadata JSON - created_at
+
+Query - id - session_id - text - created_at
+
+AnalysisResult - id - query_id - task - model_id - answer - confidence -
+evidence JSON - execution_trace JSON - created_at
+
+Do not store huge raster data directly in database blobs. Store file
+paths/object-storage references and metadata.
+
+============================================================ 17. API
+CONTRACT ============================================================
+
+Suggested endpoints:
+
+GET /api/health
+
+POST /api/uploads Upload one or more images.
+
+POST /api/sessions Create analysis session.
+
+GET /api/sessions List history.
+
+GET /api/sessions/{id} Get session details.
+
+POST /api/sessions/{id}/analyze Submit query and trigger orchestration.
+
+GET /api/analyses/{id} Get analysis result.
+
+GET /api/models Return model registry.
+
+GET /api/models/{id} Return model capabilities.
+
+POST /api/validate Validate image/input configuration.
+
+GET /api/reports/{id} Generate/download report if implemented.
+
+The exact route names can differ, but responsibilities must remain
+clear.
+
+============================================================ 18. REQUEST
+/ RESPONSE EXAMPLE
+============================================================
+
+Analysis request:
+
+{ “session_id”: “…”, “query”: “Where are the water bodies?”,
+“image_ids”: [“…”], “mode”: “auto” }
+
+Example response:
+
+{ “analysis_id”: “…”, “task”: “grounding”, “model_id”:
+“remote_sensing_grounding”, “answer”: “…”, “confidence”: 0.92,
+“evidence”: [ { “type”: “bounding_box”, “label”: “water body”,
+“coordinates”: [ … ] } ], “execution_trace”: [ “Query understood”,
+“Input validated”, “Task detected: Grounding”, “Specialist selected”,
+“Analysis completed” ] }
+
+============================================================ 19. ERROR
+HANDLING ============================================================
+
+The application must handle:
+
+-   unsupported file format
+-   corrupted image
+-   missing required pair
+-   wrong modality
+-   incompatible optical/SAR pair
+-   missing metadata
+-   model unavailable
+-   inference failure
+-   oversized image
+-   timeout
+-   empty query
+-   no evidence found
+
+Use clear human-readable errors.
+
+Example:
+
+“Two images are required for change analysis. Please upload a before and
+after image.”
+
+Do not expose stack traces to normal users.
+
+Log technical errors on the backend.
+
+============================================================ 20.
+SECURITY / BASIC SAFETY
+============================================================
+
+For the prototype:
+
+-   validate file types
+-   enforce upload size limits
+-   sanitize filenames
+-   avoid executing uploaded files
+-   store uploads outside the static source directory
+-   use generated IDs
+-   validate API input
+-   keep secrets in environment variables
+-   do not commit API keys
+-   do not expose internal filesystem paths
+-   do not allow arbitrary model path input from users
+
+============================================================ 21.
+PERFORMANCE / SCALABILITY DIRECTION
+============================================================
+
+The system should be modular enough to scale.
+
+For a local hackathon prototype: - FastAPI - local file storage -
+SQLite - one inference worker
+
+Architecture should allow later: - object storage - PostgreSQL -
+background workers - GPU workers - metadata indexing - tile-based
+processing - distributed inference
+
+For large remote-sensing archives, the intended architecture is:
+metadata search -> identify relevant images/tiles -> fetch only required
+data -> process through scalable workers.
+
+Do not load an entire archive into memory.
+
+============================================================ 22.
+OBSERVABILITY
+============================================================
+
+Log: - session ID - query - selected task - selected model - processing
+start/end - success/failure - warnings
+
+Do not log private chain-of-thought.
+
+The UI should expose only a concise execution trace.
+
+============================================================ 23. TESTING
+============================================================
+
+Create tests for:
+
+Unit tests: - task classification - input validation - model registry
+lookup - modality compatibility - aggregation - confidence handling
+
+API tests: - upload - session creation - analysis - history - model
+registry
+
+Frontend tests: - upload interaction - query submission - processing
+state - result rendering - history reopening
+
+Integration tests: 1. single image -> VQA 2. single image -> grounding
+3. two dates -> change analysis 4. optical + SAR -> joint analysis 5.
+invalid input -> friendly validation error
+
+============================================================ 24. SAMPLE
+DEMO DATA ============================================================
+
+Create a clearly separated demo-data directory.
+
+Use only legally usable/open sample imagery or user-provided files.
+
+Suggested structure:
+
+data/ demo/ single/ optical_sar/ bi_temporal/
+
+Do not put fake ISRO evaluation data into the project and label it as
+official evaluation data.
+
+If actual benchmark samples are downloaded, preserve dataset attribution
+and licensing information.
+
+============================================================ 25. PROJECT
+DIRECTORY ============================================================
+
+Recommended:
+
+satquery-ai/ | |– README.md |– IMPLEMENTATION.md |– .env.example |–
+.gitignore |– docker-compose.yml | |– frontend/ | |– src/ | | |–
+components/ | | |– pages/ | | |– layouts/ | | |– services/ | | |– hooks/
+| | |– types/ | | |– assets/ | | -- App.tsx |– package.json | |–
+backend/ | |– app/ | | |– api/ | | |– agent/ | | |– models/ | | |–
+services/ | | |– schemas/ | | |– db/ | | -- core/ |   |-- tests/ |–
+requirements.txt | |– data/ | |– uploads/ | |– processed/ | |– demo/ |
+-- models/ | |-- scripts/ |   |-- setup.py |   |-- seed_demo.py |–
+download_models.py | `– docs/
+
+============================================================ 26.
+DEVELOPMENT ORDER
+============================================================
+
+Do NOT attempt everything simultaneously.
+
+PHASE 1 — PROJECT FOUNDATION - create frontend - create backend -
+environment configuration - API health endpoint - base layout - routing
+
+PHASE 2 — UI IMPLEMENTATION - sidebar - main chat - upload screen -
+processing state - history - settings - result cards - evidence viewer
+
+PHASE 3 — IMAGE INGESTION - upload - validation - preview - metadata -
+session association
+
+PHASE 4 — AGENT - task classifier - validator - model registry -
+routing - execution trace
+
+PHASE 5 — SPECIALIST ADAPTERS Implement adapters one at a time: - VQA -
+grounding - change - optical-SAR - captioning if selected as the second
+single-image capability
+
+PHASE 6 — PERSISTENCE - SQLite - sessions - queries - results - history
+
+PHASE 7 — EVIDENCE - bounding boxes - overlays - side-by-side
+comparison - change map where available
+
+PHASE 8 — TESTING Run all required workflows.
+
+PHASE 9 — DEMO POLISH - remove unnecessary UI - fix loading states -
+improve error messages - verify responsive desktop layout - verify
+screenshots - verify end-to-end demo
+
+============================================================ 27. MVP
+PRIORITY ============================================================
+
+If time becomes limited, prioritize in this exact order:
+
+P0 — MUST WORK 1. Upload single image 2. Ask natural-language question
+3. Agent detects task 4. Agent selects specialist 5. VQA works 6.
+Grounding or captioning works 7. Bi-temporal change analysis works 8.
+Optical + SAR workflow works 9. Answer appears in chat 10. Visual
+evidence appears when supported 11. Execution trace appears
+
+P1 — IMPORTANT 12. History 13. GeoTIFF metadata 14. Input compatibility
+checks 15. Confidence display 16. Report export
+
+P2 — OPTIONAL 17. Advanced settings 18. More datasets 19. More models
+20. Advanced analytics
+
+If something must be removed because of time: remove optional
+UI/analytics/reporting features first. Do NOT remove mandatory SIH
+workflows.
+
+============================================================ 28. JURY
+DEMO FLOW ============================================================
+
+The final demo should be possible in a few minutes.
+
+DEMO 1 — SINGLE IMAGE
+
+1.  Click New Analysis.
+2.  Upload satellite image.
+3.  Ask: “Describe the land-cover and major objects visible in this
+    image.”
+4.  Show agent processing.
+5.  Show detected task.
+6.  Show answer.
+7.  Show confidence/evidence.
+
+DEMO 2 — GROUNDING
+
+Ask: “Where are the water bodies?”
+
+Show: - answer - highlighted regions/bounding boxes
+
+DEMO 3 — BI-TEMPORAL
+
+Upload before + after. Ask: “What changed between these two dates?”
+
+Show: - before/after - change description - visual evidence
+
+DEMO 4 — OPTICAL + SAR
+
+Upload optical + SAR. Ask: “Use the optical and SAR images together to
+identify built-up and water-covered regions.”
+
+Show: - both inputs - joint analysis - evidence - execution trace
+
+The agentic behavior should be obvious: the user asks the question; the
+system decides what specialist to use.
+
+============================================================ 29.
+ACCEPTANCE CRITERIA
+============================================================
+
+The prototype is considered functionally ready when:
+
+[ ] Application starts locally with documented commands. [ ] User can
+create a new analysis. [ ] User can upload supported imagery. [ ]
+Uploaded images are previewed. [ ] Input compatibility is checked. [ ]
+User can enter natural-language queries. [ ] Agent determines task. [ ]
+Agent selects a specialist adapter. [ ] Specialist executes. [ ] Answer
+appears in chat. [ ] Evidence appears where supported. [ ] Confidence
+appears where supported. [ ] Execution trace is visible. [ ]
+Single-image VQA workflow works. [ ] Second single-image task works. [ ]
+Bi-temporal change workflow works. [ ] Optical + SAR workflow works. [ ]
+History is persisted. [ ] Invalid inputs produce useful messages. [ ] No
+fake metrics are shown. [ ] No unsupported claims are presented as
+completed functionality. [ ] UI matches the supplied SatQuery design
+direction. [ ] Poppins is used. [ ] Beige is the primary color. [ ]
+Interface is clean and not dashboard-heavy. [ ] Project has a clear
+README. [ ] Tests exist for core backend logic.
+
+============================================================ 30. UI
+DESIGN RULES — NON-NEGOTIABLE
+============================================================
+
+The supplied UI screenshots are the visual reference.
+
+Use: Poppins
+
+Primary: #F2EFE7
+
+Navy: #0D1B2A
+
+Teal: #4E6B7C
+
+Sky Blue: #C8D9E6
+
+White: #FFFFFF
+
+The interface should have: - generous whitespace - large readable
+headings - simple rounded surfaces - restrained shadows - clean icons -
+clear hierarchy - satellite image as the visual focus
+
+Avoid: - neon - glowing effects - cyberpunk - sci-fi control rooms -
+excessive gradients - dense dashboards - tiny text - excessive cards -
+fake telemetry - fake system status - unnecessary statistics
+
+============================================================ 31.
+IMPORTANT PRODUCT LANGUAGE
+============================================================
+
+Preferred: “SatQuery AI” “Remote-Sensing AI Assistant” “Analysis Mode”
+“Auto Detect” “Visual Evidence” “Confidence” “Analysis Process”
+“Specialist Model” “Change Detection” “Optical + SAR” “Grounding” “VQA”
+
+Avoid: “Mission Control” “Live Orbit Feed” “Telemetry” “Constellation
+Control” “Satellite Operations Center” unless a future feature genuinely
+requires such terminology.
+
+============================================================ 32.
+DOCUMENTATION REQUIREMENTS
+============================================================
+
+README must contain:
+
+1.  Project overview
+2.  Problem statement
+3.  Architecture
+4.  Features
+5.  Tech stack
+6.  Setup instructions
+7.  Environment variables
+8.  How to run frontend
+9.  How to run backend
+10. How to add a specialist model
+11. How agent routing works
+12. Demo workflow
+13. Dataset attribution
+14. Limitations
+15. Future work
+
+Also include a simple architecture diagram in documentation:
+
+USER | IMAGE(S) + QUERY | INPUT VALIDATION | SATQUERY AGENT | MODEL
+REGISTRY | +——————————-+ | VQA | GROUNDING | CHANGE | | | CAPTIONING |
+OPTICAL-SAR | +——————————-+ | OUTPUT AGGREGATION | ANSWER + EVIDENCE +
+CONFIDENCE | USER
+
+============================================================ 33.
+FUTURE-SAFE ARCHITECTURE
+============================================================
+
+Do not tightly couple: - frontend to a particular AI model - agent to a
+particular model library - storage to local filesystem - API to a single
+inference implementation
+
+The prototype should be easy to extend with: - additional remote-sensing
+VLMs - more specialist models - larger datasets - cloud/object storage -
+GPU workers - large archive search - additional sensors
+
+============================================================ 34. FINAL
+IMPLEMENTATION PRINCIPLE
+============================================================
+
+The system should be technically sophisticated underneath but simple on
+the surface.
+
+USER SEES:
+
+Upload + Ask + Answer + Evidence
+
+SYSTEM DOES:
+
+Validate + Understand + Route + Analyze + Aggregate + Explain
+
+The entire product should communicate this idea:
+
+“Don’t choose the model. Just ask the question.”
+
+============================================================ 35.
+INSTRUCTION TO ANTIGRAVITY
+============================================================
+
+When this file is given to Antigravity:
+
+1.  Read it completely.
+2.  Inspect the existing repository before changing anything.
+3.  Preserve useful existing code.
+4.  Do not overwrite working components blindly.
+5.  Create a clear implementation plan.
+6.  Identify dependencies and environment requirements.
+7.  Implement incrementally.
+8.  Run the application after each major phase.
+9.  Run tests.
+10. Fix errors before moving on.
+11. Do not claim a feature is working unless it has actually been
+    tested.
+12. Keep real model integration separate from demo fallback.
+13. Clearly document any model that requires a local download or GPU.
+14. Never fabricate benchmark scores.
+15. Never fabricate ISRO/SAC results.
+16. Never expose hidden reasoning.
+17. Keep the UI faithful to the supplied screenshots.
+18. Keep the product simple and uncluttered.
+19. Prefer a working MVP over unnecessary features.
+20. At the end, provide:
+    -   what was implemented
+    -   what is working
+    -   what requires external models/data
+    -   how to run it
+    -   test results
+    -   known limitations
+
+END OF IMPLEMENTATION SPECIFICATION

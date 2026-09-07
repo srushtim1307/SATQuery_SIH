@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+*.log
+
+# Node / Vite
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+*.local
+.env
+.env.*
+
+# Database & Uploads
+*.db
+*.sqlite
+data/uploads/*
+!data/uploads/.gitkeep
+data/previews/*
+!data/previews/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/test_tmp/
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/previews/*
+!backend/data/previews/.gitkeep
+backend/data/processed/*
+!backend/data/processed/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

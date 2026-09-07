@@ -1,0 +1,20 @@
+# BigEarthNet-19 Class Taxonomy (CORINE Land Cover Nomenclature)
+0: Urban fabric
+1: Industrial or commercial units
+2: Arable land
+3: Permanent crops
+4: Pastures
+5: Complex cultivation patterns
+6: Land principally occupied by agriculture, with significant areas of natural vegetation
+7: Agro-forestry areas
+8: Broad-leaved forest
+9: Coniferous forest
+10: Mixed forest
+11: Natural grassland and sparsely vegetated areas
+12: Moors, heathland and sclerophyllous vegetation
+13: Transitional woodland, shrub
+14: Beaches, dunes, sands
+15: Inland wetlands
+16: Coastal wetlands
+17: Inland waters
+18: Marine waters
