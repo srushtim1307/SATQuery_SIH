@@ -1,0 +1,130 @@
+================================================================================
+           SATQUERY AI — STEP-BY-STEP GUIDE TO RUN THE PROJECT
+   (ISRO Problem Statement SIH26167: Vision-Language Assistant for Satellite Data)
+================================================================================
+
+Hello Team! Follow these simple steps to set up and run SatQuery AI on your machine.
+
+--------------------------------------------------------------------------------
+PREREQUISITES (Make sure you have these installed)
+--------------------------------------------------------------------------------
+1. Python: Version 3.10, 3.11, 3.12, 3.13, or 3.14
+   Check: python --version
+2. Node.js & npm: Node v18+ and npm v9+
+   Check: node -v && npm -v
+3. Git
+   Check: git --version
+
+--------------------------------------------------------------------------------
+STEP 1: CLONE THE REPOSITORY
+--------------------------------------------------------------------------------
+Open your terminal (PowerShell, Command Prompt, or Terminal) and run:
+
+    git clone https://github.com/srushtim1307/SATQuery_SIH.git
+    cd SATQuery_SIH
+
+--------------------------------------------------------------------------------
+STEP 2: SET UP & START THE BACKEND SERVER (Port 8000)
+--------------------------------------------------------------------------------
+Open a terminal window and stay in the root folder (SATQuery_SIH):
+
+1. (Optional but recommended) Create a virtual environment:
+   Windows:
+       python -m venv venv
+       .\venv\Scripts\activate
+   Mac/Linux:
+       python3 -m venv venv
+       source venv/bin/activate
+
+2. Install Python dependencies:
+       pip install -r backend/requirements.txt
+
+3. Start the FastAPI backend server:
+       python -m uvicorn app.main:app --port 8000 --app-dir backend --host 127.0.0.1 --reload
+
+   You should see:
+   INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+
+   You can verify it works by opening in your browser:
+   - Health Check: http://127.0.0.1:8000/api/health
+   - Swagger API Docs: http://127.0.0.1:8000/docs
+
+   * Keep this terminal open! *
+
+--------------------------------------------------------------------------------
+STEP 3: SET UP & START THE FRONTEND (Port 5173)
+--------------------------------------------------------------------------------
+Open a SECOND terminal window and run:
+
+1. Navigate to the frontend directory:
+       cd frontend
+
+2. Install Node packages (only needed the first time):
+       npm install
+
+3. Start the Vite development server:
+       npm run dev
+
+   You should see:
+   VITE v8.x ready in ... ms
+   ➜  Local:   http://localhost:5173/
+
+   * Keep this terminal open too! *
+
+--------------------------------------------------------------------------------
+STEP 4: OPEN & USE THE APPLICATION
+--------------------------------------------------------------------------------
+1. Open your web browser and go to:
+       http://localhost:5173
+
+2. How to test different features:
+   A. Upload Your Own Imagery:
+      - Click "Upload" or navigate to "New Analysis" in the sidebar.
+      - Select single image, dual optical+SAR pair, or before+after change pair.
+      - Formats supported: GeoTIFF (.tif, .tiff), PNG (.png), JPEG (.jpg).
+      - Click "Continue to Analysis".
+
+   B. Ask Natural Language Questions:
+      - Visual Grounding: "Where are the water bodies in this image?" or "Locate roads".
+      - Change Detection: Upload 2 images and ask "What changed between these two images?".
+      - Optical + SAR: Upload 1 optical + 1 SAR and ask "Compare optical and SAR data".
+      - VQA: "Is this scene mostly water or green vegetation?".
+      - Scene Description: "Describe the land-cover classification of this scene".
+
+   C. Benchmark Demos (Pre-loaded):
+      - In the left sidebar, click on "Water Body Identification", "Urban Expansion",
+        or "Optical + SAR Analysis" to view reference scenarios.
+
+--------------------------------------------------------------------------------
+STEP 5: HOW TO RUN AUTOMATED TESTS & JURY VERIFICATION
+--------------------------------------------------------------------------------
+If you want to verify that all AI models and pipelines are passing:
+
+1. Run all 55 PyTest automated tests:
+       pytest backend/tests/ -v
+
+2. Run the 11/11 Master Acceptance Suite (Jury Demo Script):
+       python scripts/verify_final_e2e.py
+
+3. Run Frontend Build Check:
+       cd frontend
+       npm run build
+
+--------------------------------------------------------------------------------
+TROUBLESHOOTING & TIPS
+--------------------------------------------------------------------------------
+1. "Upload Validation Error: Bad Gateway" or "Connection refused":
+   -> This means the backend server on port 8000 is not running. Make sure Step 2
+      is running in its own terminal.
+
+2. "Port 8000 or 5173 is already in use":
+   -> You have another process using the port. Kill it or restart your terminal:
+      Windows PowerShell: Get-Process python, node | Stop-Process
+
+3. GPU vs CPU:
+   -> The backend automatically detects if you have an NVIDIA GPU (CUDA). If not,
+      it runs smoothly on CPU with LRU memory caching enabled. No manual config needed!
+
+================================================================================
+                           All set! Happy Hacking!
+================================================================================
