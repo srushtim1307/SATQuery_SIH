@@ -132,10 +132,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User Profile Card */}
         <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#F6F4EE] border border-[#E8E4DA]">
           <div className="w-8 h-8 rounded-full bg-[#0D1B2A] text-white flex items-center justify-center text-xs font-semibold shadow-xs">
-            AS
+            SM
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-semibold text-[#0D1B2A] truncate">Dr. Aya Sharma</div>
+            <div className="text-xs font-semibold text-[#0D1B2A] truncate">Ms. Srushti Mate</div>
             <div className="text-[10px] text-[#4E6B7C] truncate">Principal Analyst</div>
           </div>
         </div>
